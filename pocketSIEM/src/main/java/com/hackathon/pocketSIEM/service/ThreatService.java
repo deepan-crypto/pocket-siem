@@ -83,17 +83,17 @@ public class ThreatService {
             .filter(t -> t.getUserSeverity() >= 75).count();
         long highCount = recentThreats.stream()
             .filter(t -> t.getUserSeverity() >= 50 && t.getUserSeverity() < 75).count();
+        long suspiciousCount = recentThreats.stream()
+            .filter(t -> t.getUserSeverity() >= 25 && t.getUserSeverity() < 50).count();
         
         return DeviceStatsResponse.builder()
             .deviceTrustScore(trustScore)
             .appsMonitored(25) // Mock data - integrate with VPN service
-            .threatsBlocked(recentThreats.size())
-            .dataUsageBytes(1024 * 1024 * 512) // Mock: 512MB
+            .threatsBlocked((int) recentThreats.stream().count())
+            .dataUsageBytes(1024L * 1024L * 512L) // Mock: 512MB
             .criticalThreats((int) criticalCount)
             .highThreats((int) highCount)
-            .suspiciousConnections(recentThreats.stream()
-                .filter(t -> t.getUserSeverity() >= 25 && t.getUserSeverity() < 50).count()
-                .intValue())
+            .suspiciousConnections((int) suspiciousCount)
             .build();
     }
     
@@ -109,7 +109,7 @@ public class ThreatService {
         
         // Generate 12 data points for the last hour (5-minute intervals)
         for (int i = 11; i >= 0; i--) {
-            LocalDateTime timePoint = now.minusMinutes(i * 5);
+            LocalDateTime timePoint = now.minusMinutes((long) i * 5);
             LocalDateTime timeRangeStart = timePoint.minusMinutes(5);
             
             long threatCount = threatReportRepository.findAll().stream()
@@ -143,7 +143,7 @@ public class ThreatService {
                 .port(443)
                 .protocol("TCP")
                 .status("SAFE")
-                .dataTransferred(1024 * 512)
+                .dataTransferred(1024L * 512)
                 .timestamp(System.currentTimeMillis())
                 .build(),
             NetworkConnectionResponse.builder()
@@ -153,7 +153,7 @@ public class ThreatService {
                 .port(993)
                 .protocol("TCP")
                 .status("SAFE")
-                .dataTransferred(1024 * 256)
+                .dataTransferred(1024L * 256)
                 .timestamp(System.currentTimeMillis() - 10000)
                 .build(),
             NetworkConnectionResponse.builder()
@@ -163,7 +163,7 @@ public class ThreatService {
                 .port(8080)
                 .protocol("TCP")
                 .status("SUSPICIOUS")
-                .dataTransferred(1024 * 100)
+                .dataTransferred(1024L * 100)
                 .timestamp(System.currentTimeMillis() - 20000)
                 .build(),
             NetworkConnectionResponse.builder()
@@ -173,7 +173,7 @@ public class ThreatService {
                 .port(443)
                 .protocol("TCP")
                 .status("MALICIOUS")
-                .dataTransferred(1024 * 50)
+                .dataTransferred(1024L * 50)
                 .timestamp(System.currentTimeMillis() - 30000)
                 .build()
         );

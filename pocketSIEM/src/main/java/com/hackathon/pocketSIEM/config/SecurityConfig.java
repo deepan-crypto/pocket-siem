@@ -21,14 +21,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reputation").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/v1/report").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/reports/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/device-stats").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/attack-surface").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/live-connections").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class);
