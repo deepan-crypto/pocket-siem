@@ -10,7 +10,6 @@ com/hackathon/pocketSIEM/service/MockThreatIntelligenceApi.class
 com/hackathon/pocketSIEM/dto/ThreatReportRequest.class
 com/hackathon/pocketSIEM/dto/ReputationResponse$ReputationResponseBuilder.class
 com/hackathon/pocketSIEM/controller/ThreatController.class
-com/hackathon/pocketSIEM/security/ApiKeyAuthenticationFilter.class
 com/hackathon/pocketSIEM/dto/ThreatReportRequest$ThreatReportRequestBuilder.class
 com/hackathon/pocketSIEM/service/ThreatService.class
 com/hackathon/pocketSIEM/dto/NetworkConnectionResponse.class
@@ -20,6 +19,7 @@ com/hackathon/pocketSIEM/service/ExternalThreatIntelligenceApi.class
 com/hackathon/pocketSIEM/exception/ErrorResponse.class
 com/hackathon/pocketSIEM/config/SecurityConfig.class
 com/hackathon/pocketSIEM/security/ApiKeyFilter.class
+com/hackathon/pocketSIEM/config/CorsConfig.class
 com/hackathon/pocketSIEM/service/ExternalThreatIntelligenceClient.class
 com/hackathon/pocketSIEM/dto/ReputationResponse.class
 com/hackathon/pocketSIEM/dto/DeviceStatsResponse.class

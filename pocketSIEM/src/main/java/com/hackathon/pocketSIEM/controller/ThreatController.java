@@ -17,9 +17,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ThreatController {
-    
+
     private final ThreatService threatService;
-    
+
     /**
      * GET /api/v1/reputation?ip={ip_address}
      * Check reputation of an IP address
@@ -27,16 +27,16 @@ public class ThreatController {
     @GetMapping("/reputation")
     public ResponseEntity<ThreatReputationResponse> getIpReputation(
             @RequestParam(name = "ip") String ipAddress) {
-        
+
         log.info("Reputation check request for IP: {}", ipAddress);
         if (!isValidIpAddress(ipAddress)) {
             return ResponseEntity.badRequest().build();
         }
-        
+
         ThreatReputationResponse response = threatService.checkIpReputation(ipAddress);
         return ResponseEntity.ok(response);
     }
-    
+
     /**
      * POST /api/v1/report
      * Submit a new threat report
@@ -44,14 +44,14 @@ public class ThreatController {
     @PostMapping("/report")
     public ResponseEntity<ThreatReport> reportThreat(
             @Valid @RequestBody ThreatReportRequest request) {
-        
-        log.info("Processing threat report for app: {}, IP: {}", 
-                 request.getAppName(), request.getTargetIp());
-        
+
+        log.info("Processing threat report for app: {}, IP: {}",
+                request.getAppName(), request.getTargetIp());
+
         ThreatReport savedReport = threatService.reportThreat(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedReport);
     }
-    
+
     @GetMapping("/reports/{ip}")
     public ResponseEntity<List<ThreatReport>> getReportsForIp(@PathVariable String ip) {
         if (!isValidIpAddress(ip)) {
@@ -60,13 +60,13 @@ public class ThreatController {
         List<ThreatReport> reports = threatService.getReportsForIp(ip);
         return ResponseEntity.ok(reports);
     }
-    
+
     @GetMapping("/reports/app/{appName}")
     public ResponseEntity<List<ThreatReport>> getReportsForApp(@PathVariable String appName) {
         List<ThreatReport> reports = threatService.getReportsForApp(appName);
         return ResponseEntity.ok(reports);
     }
-    
+
     @GetMapping("/reports/ip/{ip}/count")
     public ResponseEntity<Integer> getRecentReportCount(@PathVariable String ip) {
         if (!isValidIpAddress(ip)) {
@@ -75,7 +75,7 @@ public class ThreatController {
         Integer count = threatService.getRecentReportCount(ip);
         return ResponseEntity.ok(count);
     }
-    
+
     /**
      * GET /api/v1/device-stats
      * Get device security statistics for dashboard
@@ -86,7 +86,7 @@ public class ThreatController {
         DeviceStatsResponse stats = threatService.getDeviceStats();
         return ResponseEntity.ok(stats);
     }
-    
+
     /**
      * GET /api/v1/attack-surface
      * Get attack surface data for last hour chart
@@ -97,7 +97,7 @@ public class ThreatController {
         List<AttackSurfaceDataPoint> data = threatService.getAttackSurfaceData();
         return ResponseEntity.ok(data);
     }
-    
+
     /**
      * GET /api/v1/live-connections
      * Get active network connections for live monitor
@@ -108,10 +108,30 @@ public class ThreatController {
         List<NetworkConnectionResponse> connections = threatService.getLiveConnections();
         return ResponseEntity.ok(connections);
     }
-    
+
+    /**
+     * Validates IPv4 and IPv6 addresses
+     * IPv4: Each octet must be 0-255
+     * IPv6: Standard hexadecimal format with colons
+     */
     private boolean isValidIpAddress(String ip) {
-        String ipv4Pattern = "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$";
-        String ipv6Pattern = "^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$";
+        if (ip == null || ip.isEmpty()) {
+            return false;
+        }
+
+        // IPv4 validation with proper octet range checking (0-255)
+        String ipv4Pattern = "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$";
+
+        // IPv6 validation (standard and compressed formats)
+        // Supports full addresses, compressed (::), and mixed IPv4-mapped
+        String ipv6Pattern = "^("
+                + "([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|" // Full form
+                + "([0-9a-fA-F]{1,4}:){1,7}:|" // Compressed
+                + "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" // Compressed single
+                + "::([0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}|" // Leading ::
+                + "([0-9a-fA-F]{1,4}:){1,6}:((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}" // IPv4-mapped
+                + ")$";
+
         return ip.matches(ipv4Pattern) || ip.matches(ipv6Pattern);
     }
 }

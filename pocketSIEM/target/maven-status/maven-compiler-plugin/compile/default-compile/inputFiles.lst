@@ -1,13 +1,13 @@
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/service/ExternalThreatIntelligenceApi.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/security/ApiKeyFilter.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/controller/ThreatController.java
-/home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/security/ApiKeyAuthenticationFilter.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/service/ExternalThreatIntelligenceClient.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/model/ThreatReport.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/dto/AttackSurfaceDataPoint.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/service/MockThreatIntelligenceApi.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/exception/GlobalExceptionHandler.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/dto/ThreatReputationResponse.java
+/home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/config/CorsConfig.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/security/ApiKeyValidator.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/dto/NetworkConnectionResponse.java
 /home/edith/Downloads/pocketSIEM/pocketSIEM/src/main/java/com/hackathon/pocketSIEM/dto/ReputationResponse.java
