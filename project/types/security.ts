@@ -5,7 +5,7 @@ export interface NetworkConnection {
   appName: string;
   appIcon: string;
   destinationIp: string;
-  protocol: 'TCP' | 'UDP';
+  protocol: string;  // Can be 'TCP', 'UDP', or other protocols
   status: ThreatLevel;
   timestamp: Date;
   port: number;

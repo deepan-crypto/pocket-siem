@@ -1,18 +1,76 @@
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { TrustScoreGauge } from '@/components/TrustScoreGauge';
 import { StatCard } from '@/components/StatCard';
 import { colors, spacing, fontSize } from '@/constants/theme';
-import { mockDeviceStats, mockTrafficData } from '@/data/mockData';
+import threatService from '@/services/threatService';
 
 export default function Dashboard() {
+  const [deviceStats, setDeviceStats] = useState<any>(null);
+  const [chartData, setChartData] = useState<number[]>([]);
+  const [chartLabels, setChartLabels] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const screenWidth = Dimensions.get('window').width;
 
-  const chartData = {
-    labels: ['1h', '50m', '40m', '30m', '20m', '10m', 'Now'],
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch device stats
+      const stats = await threatService.getDeviceStats();
+      setDeviceStats(stats);
+
+      // Fetch attack surface data for chart
+      const surfaceData = await threatService.getAttackSurfaceData();
+
+      // Extract chart data (last 7 data points for better visibility)
+      const last7 = surfaceData.slice(-7);
+      const data = last7.map(point => point.threatCount);
+      const labels = last7.map(point => point.timeLabel);
+
+      setChartData(data);
+      setChartLabels(labels);
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial fetch
+    fetchDashboardData();
+
+    // Auto-refresh every 5 seconds for live updates
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatDataUsage = (bytes: number) => {
+    const mb = bytes / (1024 * 1024);
+    if (mb < 1024) return `${mb.toFixed(1)} MB`;
+    return `${(mb / 1024).toFixed(1)} GB`;
+  };
+
+  if (loading && !deviceStats) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading security dashboard...</Text>
+      </View>
+    );
+  }
+
+  const lineChartData = {
+    labels: chartLabels.length > 0 ? chartLabels : ['Loading...'],
     datasets: [
       {
-        data: mockTrafficData.map((d) => d.value),
+        data: chartData.length > 0 ? chartData : [0],
         strokeWidth: 3,
       },
     ],
@@ -25,9 +83,18 @@ export default function Dashboard() {
         <Text style={styles.subtitle}>Security Operations Center</Text>
       </View>
 
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+        </View>
+      )}
+
       <View style={styles.gaugeContainer}>
         <Text style={styles.sectionTitle}>DEVICE TRUST SCORE</Text>
-        <TrustScoreGauge score={mockDeviceStats.trustScore} size={220} />
+        <TrustScoreGauge
+          score={deviceStats?.deviceTrustScore || 0}
+          size={220}
+        />
         <Text style={styles.gaugeSubtext}>
           Your device security posture
         </Text>
@@ -37,7 +104,7 @@ export default function Dashboard() {
         <Text style={styles.sectionTitle}>LIVE ATTACK SURFACE</Text>
         <View style={styles.chartContainer}>
           <LineChart
-            data={chartData}
+            data={lineChartData}
             width={screenWidth - spacing.md * 2}
             height={200}
             chartConfig={{
@@ -64,7 +131,7 @@ export default function Dashboard() {
             style={styles.chart}
           />
         </View>
-        <Text style={styles.chartLabel}>Network Traffic (connections/min)</Text>
+        <Text style={styles.chartLabel}>Threat Activity (last hour)</Text>
       </View>
 
       <View style={styles.section}>
@@ -72,17 +139,17 @@ export default function Dashboard() {
         <View style={styles.statsContainer}>
           <StatCard
             title="Apps Monitored"
-            value={mockDeviceStats.appsMonitored}
+            value={deviceStats?.appsMonitored || 0}
             icon="📱"
           />
           <StatCard
             title="Threats Blocked"
-            value={mockDeviceStats.threatsBlocked}
+            value={deviceStats?.threatsBlocked || 0}
             icon="🛡️"
           />
           <StatCard
             title="Data Usage"
-            value={mockDeviceStats.dataUsage}
+            value={formatDataUsage(deviceStats?.dataUsageBytes || 0)}
             icon="📊"
           />
         </View>
@@ -97,6 +164,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     padding: spacing.lg,
@@ -161,5 +232,23 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: spacing.xl,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  errorBanner: {
+    margin: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.error + '20',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  errorText: {
+    fontSize: fontSize.sm,
+    color: colors.error,
+    textAlign: 'center',
   },
 });

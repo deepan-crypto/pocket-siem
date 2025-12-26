@@ -1,20 +1,96 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ConnectionItem } from '@/components/ConnectionItem';
 import { ThreatAlertModal } from '@/components/ThreatAlertModal';
 import { colors, spacing, fontSize } from '@/constants/theme';
-import { mockConnections, mockThreatAlert } from '@/data/mockData';
+import { mockThreatAlert } from '@/data/mockData';
+import threatService from '@/services/threatService';
+import type { NetworkConnection as BackendConnection } from '@/services/threatService';
+
+// Local type for frontend display with app icons
+interface LocalNetworkConnection {
+  id: string;
+  appName: string;
+  appPackage: string;
+  appIcon: string;
+  destinationIp: string;
+  port: number;
+  protocol: string;
+  status: 'safe' | 'suspicious' | 'malicious';
+  dataTransferred: number;
+  timestamp: Date;
+}
 
 export default function Monitor() {
+  const [connections, setConnections] = useState<LocalNetworkConnection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showThreatModal, setShowThreatModal] = useState(false);
 
-  const safeCount = mockConnections.filter((c) => c.status === 'safe').length;
-  const suspiciousCount = mockConnections.filter(
-    (c) => c.status === 'suspicious'
-  ).length;
-  const maliciousCount = mockConnections.filter(
-    (c) => c.status === 'malicious'
-  ).length;
+  // Map backend status to frontend format and add icons
+  const mapBackendConnection = (conn: BackendConnection): LocalNetworkConnection => {
+    const statusMap = {
+      'SAFE': 'safe' as const,
+      'SUSPICIOUS': 'suspicious' as const,
+      'MALICIOUS': 'malicious' as const,
+    };
+
+    const iconMap: Record<string, string> = {
+      'chrome': '🌐',
+      'gmail': '📧',
+      'whatsapp': '💬',
+      'banking': '🏦',
+      'spotify': '🎵',
+      'unknown': '❓',
+      'system': '⚙️',
+    };
+
+    const appKey = conn.appName.toLowerCase().replace(/\s+/g, '');
+    const icon = iconMap[appKey] || iconMap['unknown'];
+
+    return {
+      id: `${conn.appPackage}-${conn.timestamp}`,
+      appName: conn.appName,
+      appPackage: conn.appPackage,
+      appIcon: icon,
+      destinationIp: conn.destinationIp,
+      port: conn.port,
+      protocol: conn.protocol,
+      status: statusMap[conn.status] || 'suspicious',
+      dataTransferred: conn.dataTransferred,
+      timestamp: new Date(conn.timestamp),
+    };
+  };
+
+  const fetchConnections = async () => {
+    try {
+      const data = await threatService.getLiveConnections();
+      const mappedConnections = data.map(mapBackendConnection);
+      setConnections(mappedConnections);
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch connections:', err);
+      setError(err.message || 'Failed to load connections');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial fetch
+    fetchConnections();
+
+    // Auto-refresh every 3 seconds for live updates
+    const interval = setInterval(() => {
+      fetchConnections();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const safeCount = connections.filter((c) => c.status === 'safe').length;
+  const suspiciousCount = connections.filter((c) => c.status === 'suspicious').length;
+  const maliciousCount = connections.filter((c) => c.status === 'malicious').length;
 
   const handleBlock = () => {
     console.log('Connection blocked');
@@ -25,6 +101,15 @@ export default function Monitor() {
     console.log('Connection allowed');
     setShowThreatModal(false);
   };
+
+  if (loading && connections.length === 0) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading network connections...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -61,12 +146,23 @@ export default function Monitor() {
         </TouchableOpacity>
       </View>
 
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <TouchableOpacity onPress={fetchConnections} style={styles.retryButton}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
-        data={mockConnections}
+        data={connections}
         renderItem={({ item }) => <ConnectionItem connection={item} />}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={fetchConnections}
       />
 
       <ThreatAlertModal
@@ -83,6 +179,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     padding: spacing.lg,
@@ -146,5 +246,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     letterSpacing: 1,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  errorContainer: {
+    margin: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.error + '20',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.error,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  errorText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.error,
+  },
+  retryButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.error,
+    borderRadius: 4,
+  },
+  retryText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.text,
   },
 });
